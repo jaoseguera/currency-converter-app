@@ -7,10 +7,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.simpleapp.currencyconverter.ui.theme.CurrencyConverterTheme
 
@@ -27,12 +30,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
+@Preview
 @Composable
 fun ConverterScreen() {
     var amount by remember { mutableStateOf("1.0") }
     var fromCurrency by remember { mutableStateOf("USD") }
     var toCurrency by remember { mutableStateOf("EUR") }
+    var rates by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(fromCurrency) {
+        isLoading = true
+        try {
+            val response = RetrofitClient.apiService.getExchangeRates(fromCurrency)
+            rates = response.conversion_rates
+        }
+        catch(e: Exception) {
+            errorMessage = "Error: ${e.message}"
+            println(errorMessage)
+        } finally {
+            isLoading = false
+        }
+    }
+
+    val rate = rates[toCurrency] ?: 1.0
+    val amountNumber = amount.toDoubleOrNull() ?: 0.0
+    val result = amountNumber * rate
 
     val myCurrencies = listOf("USD", "EUR", "GBP", "CAD", "MXN")
 
@@ -41,7 +65,8 @@ fun ConverterScreen() {
             value = amount,
             onValueChange = { amount = it },
             label = { Text("Amount") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -62,10 +87,20 @@ fun ConverterScreen() {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = "Result: $amount $fromCurrency = ?? $toCurrency",
-            style = MaterialTheme.typography.headlineSmall,
-        )
+        if(isLoading) {
+            CircularProgressIndicator()
+        } else {
+            Text(
+                text = "Result: %.2f $toCurrency".format(result),
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color(0xFF15803D)
+            )
+            Text(
+                text = "1 $fromCurrency = $rate $toCurrency",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
+        }
     }
 }
 
