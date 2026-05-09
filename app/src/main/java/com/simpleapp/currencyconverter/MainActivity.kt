@@ -13,57 +13,37 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.simpleapp.currencyconverter.ui.theme.CurrencyConverterTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val viewModel = CurrencyViewModel()
+
         enableEdgeToEdge()
         setContent {
             CurrencyConverterTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    ConverterScreen()
+                    ConverterScreen(viewModel)
                 }
             }
         }
     }
 }
-@Preview
+
 @Composable
-fun ConverterScreen() {
-    var amount by remember { mutableStateOf("1.0") }
-    var fromCurrency by remember { mutableStateOf("USD") }
-    var toCurrency by remember { mutableStateOf("EUR") }
-    var rates by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(fromCurrency) {
-        isLoading = true
-        try {
-            val response = RetrofitClient.apiService.getExchangeRates(fromCurrency)
-            rates = response.conversion_rates
-        }
-        catch(e: Exception) {
-            errorMessage = "Error: ${e.message}"
-            println(errorMessage)
-        } finally {
-            isLoading = false
-        }
+fun ConverterScreen(viewModel: CurrencyViewModel) {
+    LaunchedEffect(viewModel.fromCurrency) {
+        viewModel.fetchRates()
     }
-
-    val rate = rates[toCurrency] ?: 1.0
-    val amountNumber = amount.toDoubleOrNull() ?: 0.0
-    val result = amountNumber * rate
 
     val myCurrencies = listOf("USD", "EUR", "GBP", "CAD", "MXN")
 
     Column(modifier = Modifier.statusBarsPadding().padding(20.dp)) {
         TextField(
-            value = amount,
-            onValueChange = { amount = it },
+            value = viewModel.amount,
+            onValueChange = { viewModel.amount = it },
             label = { Text("Amount") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -73,30 +53,30 @@ fun ConverterScreen() {
 
         SimpleCurrencyPicker(
             label = "From",
-            selected = fromCurrency,
+            selected = viewModel.fromCurrency,
             currencies = myCurrencies,
-            onSelection = { fromCurrency = it }
+            onSelection = { viewModel.fromCurrency = it }
         )
 
         SimpleCurrencyPicker(
             label = "To",
-            selected = toCurrency,
+            selected = viewModel.toCurrency,
             currencies = myCurrencies,
-            onSelection = { toCurrency = it }
+            onSelection = { viewModel.toCurrency = it }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        if(isLoading) {
+        if(viewModel.isLoading) {
             CircularProgressIndicator()
         } else {
             Text(
-                text = "Result: %.2f $toCurrency".format(result),
+                text = "Result: %.2f ${viewModel.toCurrency}".format(viewModel.result),
                 style = MaterialTheme.typography.headlineSmall,
                 color = Color(0xFF15803D)
             )
             Text(
-                text = "1 $fromCurrency = $rate $toCurrency",
+                text = "1 ${viewModel.fromCurrency} = ${viewModel.rates[viewModel.toCurrency]} ${viewModel.toCurrency}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray
             )
