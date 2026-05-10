@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ConverterScreen(viewModel: CurrencyViewModel) {
-    LaunchedEffect(viewModel.fromCurrency) {
+    LaunchedEffect(Unit) {
         viewModel.fetchRates()
     }
 
@@ -77,8 +77,13 @@ fun ConverterScreen(viewModel: CurrencyViewModel) {
                 style = MaterialTheme.typography.headlineSmall,
                 color = Color(0xFF15803D)
             )
+
+            val sourceRate = viewModel.rates[viewModel.fromCurrency] ?: 1.0
+            val targetRate = viewModel.rates[viewModel.toCurrency] ?: 1.0
+            val exchangeRate = if (sourceRate != 0.0) targetRate / sourceRate else 0.0
+
             Text(
-                text = "1 ${viewModel.fromCurrency} = ${viewModel.rates[viewModel.toCurrency]} ${viewModel.toCurrency}",
+                text = "1 ${viewModel.fromCurrency} = %.4f ${viewModel.toCurrency}".format(exchangeRate),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray
             )

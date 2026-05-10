@@ -20,18 +20,23 @@ class CurrencyViewModel(application: Application) : AndroidViewModel(application
 
     val result: Double
         get() {
-            val rate = rates[toCurrency] ?: 1.0
             val amountNumber = amount.toDoubleOrNull() ?: 0.0
-            return amountNumber * rate
+
+            val rateFromUSDToSource = rates[fromCurrency] ?: return 1.0
+            val rateFromUSDToTarget = rates[toCurrency] ?: return 1.0
+
+            return if (rateFromUSDToSource != 0.0) {
+                (amountNumber / rateFromUSDToSource) * rateFromUSDToTarget
+            } else 0.0
         }
 
     private val TAG = "CurrencyAppDebug"
     fun fetchRates() {
         viewModelScope.launch {
             isLoading = true
-            Log.d(TAG, "Start fetchRates for: $fromCurrency")
+            Log.d(TAG, "Start fetchRates for USD")
             try {
-                val cached = db.currencyDao().getRates(fromCurrency)
+                val cached = db.currencyDao().getRates("USD")
                 val oneDayInMs = 24 * 60 * 60 * 1000
                 val currentTime = System.currentTimeMillis()
 
@@ -41,9 +46,9 @@ class CurrencyViewModel(application: Application) : AndroidViewModel(application
                     rates = cached.rates
                 } else {
                     Log.d(TAG, "Cached data invalid. Calling API...")
-                    val response = RetrofitClient.apiService.getExchangeRates(fromCurrency)
+                    val response = RetrofitClient.apiService.getExchangeRates("USD")
                     val newEntity = CurrencyEntity(
-                        baseCode = fromCurrency,
+                        baseCode = "USD",
                         rates = response.conversion_rates,
                         lastUpdated = System.currentTimeMillis()
                     )
@@ -53,7 +58,7 @@ class CurrencyViewModel(application: Application) : AndroidViewModel(application
                 allCurrencies = rates.keys.toList().sorted()
                 errorMessage = null
             } catch (e: Exception) {
-                val fallbackData = currencyDao.getRates(fromCurrency)
+                val fallbackData = currencyDao.getRates("USD")
                 if (fallbackData != null) {
                     rates = fallbackData.rates
                     errorMessage = "Offline: Showing old data."
