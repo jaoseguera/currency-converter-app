@@ -1,4 +1,4 @@
-package com.simpleapp.currencyconverter
+package com.simpleapp.currencyconverter.data.model
 
 data class ExchangeResponse (
     val result: String,

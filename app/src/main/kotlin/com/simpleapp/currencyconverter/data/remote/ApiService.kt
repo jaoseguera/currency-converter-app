@@ -1,5 +1,6 @@
-package com.simpleapp.currencyconverter;
+package com.simpleapp.currencyconverter.data.remote
 
+import com.simpleapp.currencyconverter.data.model.ExchangeResponse
 import retrofit2.http.GET;
 import retrofit2.http.Path;
 

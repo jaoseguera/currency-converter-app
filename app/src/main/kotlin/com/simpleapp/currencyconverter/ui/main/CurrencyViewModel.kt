@@ -5,14 +5,17 @@ import android.util.Log
 import androidx.compose.runtime.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.simpleapp.currencyconverter.data.local.AppDatabase
+import com.simpleapp.currencyconverter.data.local.CurrencyEntity
+import com.simpleapp.currencyconverter.data.remote.RetrofitClient
 import kotlinx.coroutines.launch
 
 class CurrencyViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
     private val currencyDao = db.currencyDao()
     var amount by mutableStateOf("1.0")
-    var fromCurrency by mutableStateOf("USD")
-    var toCurrency by mutableStateOf("EUR")
+    var fromCurrency by mutableStateOf("CAD")
+    var toCurrency by mutableStateOf("MXN")
     var rates by mutableStateOf<Map<String, Double>>(emptyMap())
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)

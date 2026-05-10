@@ -1,10 +1,11 @@
-package com.simpleapp.currencyconverter
+package com.simpleapp.currencyconverter.data.local
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.simpleapp.currencyconverter.data.local.Converters
 
 @Database(entities = [CurrencyEntity::class], version = 1)
 @TypeConverters(Converters::class)
