@@ -25,17 +25,22 @@ class CurrencyViewModel(application: Application) : AndroidViewModel(application
             return amountNumber * rate
         }
 
+    private val TAG = "CurrencyAppDebug"
     fun fetchRates() {
         viewModelScope.launch {
             isLoading = true
+            Log.d(TAG, "Start fetchRates for: $fromCurrency")
             try {
                 val cached = db.currencyDao().getRates(fromCurrency)
                 val oneDayInMs = 24 * 60 * 60 * 1000
                 val currentTime = System.currentTimeMillis()
 
                 if (cached != null && (currentTime - cached.lastUpdated < oneDayInMs)) {
+                    val ageInHours = (currentTime - cached.lastUpdated) / (1000 * 60 * 60)
+                    Log.d(TAG, "Cached data valid. Last Updated: $ageInHours hours ago.")
                     rates = cached.rates
                 } else {
+                    Log.d(TAG, "Cached data invalid. Calling API...")
                     val response = RetrofitClient.apiService.getExchangeRates(fromCurrency)
                     val newEntity = CurrencyEntity(
                         baseCode = fromCurrency,
@@ -55,6 +60,7 @@ class CurrencyViewModel(application: Application) : AndroidViewModel(application
                 } else {
                     errorMessage = "Error: No available data. ${e.message}"
                 }
+                Log.d(TAG, errorMessage ?: "Empty error message.")
             }
             isLoading = false
         }
