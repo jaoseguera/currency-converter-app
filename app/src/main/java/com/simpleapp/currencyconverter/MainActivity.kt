@@ -7,23 +7,27 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simpleapp.currencyconverter.ui.theme.CurrencyConverterTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val viewModel = CurrencyViewModel()
 
         enableEdgeToEdge()
         setContent {
             CurrencyConverterTheme {
+                val viewModel: CurrencyViewModel = viewModel()
                 Surface(modifier = Modifier.fillMaxSize()) {
                     ConverterScreen(viewModel)
                 }
@@ -38,30 +42,28 @@ fun ConverterScreen(viewModel: CurrencyViewModel) {
         viewModel.fetchRates()
     }
 
-    val myCurrencies = listOf("USD", "EUR", "GBP", "CAD", "MXN")
-
     Column(modifier = Modifier.statusBarsPadding().padding(20.dp)) {
         TextField(
             value = viewModel.amount,
             onValueChange = { viewModel.amount = it },
             label = { Text("Amount") },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        SimpleCurrencyPicker(
+        AdvancedCurrencyPicker(
             label = "From",
             selected = viewModel.fromCurrency,
-            currencies = myCurrencies,
+            currencies = viewModel.allCurrencies,
             onSelection = { viewModel.fromCurrency = it }
         )
 
-        SimpleCurrencyPicker(
+        AdvancedCurrencyPicker(
             label = "To",
             selected = viewModel.toCurrency,
-            currencies = myCurrencies,
+            currencies = viewModel.allCurrencies,
             onSelection = { viewModel.toCurrency = it }
         )
 
@@ -84,31 +86,56 @@ fun ConverterScreen(viewModel: CurrencyViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SimpleCurrencyPicker(label: String, selected: String, currencies: List<String>, onSelection: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(label)
+fun AdvancedCurrencyPicker(
+    label: String,
+    selected: String,
+    currencies: List<String>,
+    onSelection: (String) -> Unit
+) {
+    var showSheet by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val sheetState = rememberModalBottomSheetState()
 
+    val filteredCurrencies = currencies.filter {
+        it.contains(searchQuery, ignoreCase = true)
+    }
+
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(text = label, style = MaterialTheme.typography.labelMedium)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = true }
-                .border(1.dp, Color.Gray)
+                .clickable { showSheet = true }
+                .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
                 .padding(16.dp)
         ) {
-            Text(text = selected)
+            Text(text = selected, fontWeight = FontWeight.Bold)
+        }
+    }
 
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                currencies.forEach { currencyCode ->
-                    DropdownMenuItem(
-                        text = { Text(currencyCode) },
-                        onClick = {
-                            onSelection(currencyCode)
-                            expanded = false
+    if (showSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheet = false },
+            sheetState = sheetState
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Search currency...") },
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            LazyColumn(modifier = Modifier.fillMaxHeight(0.6f)) {
+                items(filteredCurrencies) { currency ->
+                    ListItem(
+                        headlineContent = { Text(currency) },
+                        modifier = Modifier.clickable {
+                            onSelection(currency)
+                            showSheet = false
+                            searchQuery = ""
                         }
                     )
                 }
